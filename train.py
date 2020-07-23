@@ -111,7 +111,7 @@ class WheatDataset(Dataset):
             sample = self.transforms(**sample)
             image = sample['image']
 
-            target['boxes'] = torch.tensor(sample['bboxes'])
+            target['boxes'] = torch.tensor(sample['bboxes']).type(torch.long)
 
         return image, target, image_id
 
@@ -119,13 +119,12 @@ class WheatDataset(Dataset):
 def get_train_transforms():
     return A.Compose(
         [
-            A.RandomSizedCrop(min_max_height=(800, 800), height=1024, width=1024, p=0.5),
             A.OneOf([
                 A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2,
                                      val_shift_limit=0.2, p=0.9),
                 A.RandomBrightnessContrast(brightness_limit=0.2,
                                            contrast_limit=0.2, p=0.9),
-            ],p=0.9),
+            ], p=0.9),
             A.ToGray(p=0.01),
             A.HorizontalFlip(p=0.5),
             A.VerticalFlip(p=0.5),
@@ -202,7 +201,7 @@ indices = torch.randperm(len(train_dataset)).tolist()
 
 train_data_loader = DataLoader(
     train_dataset,
-    batch_size=16,
+    batch_size=8,
     shuffle=True,
     num_workers=4,
     collate_fn=collate_fn
@@ -216,17 +215,17 @@ valid_data_loader = DataLoader(
     collate_fn=collate_fn
 )
 
-device = torch.device('cpu')
+device = torch.device('cuda')
 
-# Sample
+# ------------------------------------- Sample -------------------------------------
 sample = False
 if sample:
     images, targets, image_ids = next(iter(train_data_loader))
     images = list(image.to(device) for image in images)
-    targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+    targets = [{k: v.long().to(device) for k, v in t.items()} for t in targets]
 
-    boxes = targets[2]['boxes'].cpu().numpy().astype(np.int32)
-    sample = images[2].permute(1, 2, 0).cpu().numpy()
+    boxes = targets[0]['boxes'].cpu().numpy().astype(np.int32)
+    sample = images[0].permute(1, 2, 0).cpu().numpy()
 
     fig, ax = plt.subplots(1, 1, figsize=(16, 8))
 
@@ -241,7 +240,7 @@ if sample:
     plt.show()
 
 
-# Training
+# ------------------------------------- Training -------------------------------------
 
 model.to(device)
 params = [p for p in model.parameters() if p.requires_grad]
@@ -249,7 +248,7 @@ optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
 # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 lr_scheduler = None
 
-num_epochs = 2
+num_epochs = 50
 
 loss_hist = Averager()
 itr = 1
@@ -260,7 +259,7 @@ for epoch in range(num_epochs):
     for images, targets, image_ids in train_data_loader:
 
         images = list(image.to(device) for image in images)
-        targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+        targets = [{k: v.long().to(device) for k, v in t.items()} for t in targets]
         loss_dict = model(images, targets)
 
         losses = sum(loss for loss in loss_dict.values())
@@ -282,4 +281,41 @@ for epoch in range(num_epochs):
         lr_scheduler.step()
 
     print(f"Epoch #{epoch} loss: {loss_hist.value}")
+
+
+# ------------------------------------- Validation -------------------------------------
+
+test_id = 5
+images, targets, image_ids = next(iter(valid_data_loader))
+images = list(img.to(device) for img in images)
+
+targets = [{k: v.long().to(device) for k, v in t.items()} for t in targets]
+
+boxes = targets[test_id]['boxes'].cpu().numpy().astype(np.int32)
+sample = images[test_id].permute(1, 2, 0).cpu().numpy()
+
+model.eval()
+cpu_device = torch.device("cpu")
+
+outputs = model(images)
+outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
+
+fig, ax = plt.subplots(1, 1, figsize=(16, 8))
+
+for box in boxes:
+    cv2.rectangle(sample,
+                  (box[0], box[1]),
+                  (box[2], box[3]),
+                  (0, 220, 0), 3)
+
+for box in outputs[test_id]['boxes']:
+    cv2.rectangle(sample,
+                  (box[0], box[1]),
+                  (box[2], box[3]),
+                  (220, 0, 0), 3)
+
+ax.set_axis_off()
+ax.imshow(sample)
+
+torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn.pth')
 

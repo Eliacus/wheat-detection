@@ -1,7 +1,6 @@
 
 import numpy as np  # linear algebra
 import pandas as pd  # data processing, CSV file I/O (e.g. pd.read_csv)
-import re
 import os
 
 import torch
@@ -12,9 +11,8 @@ from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 from matplotlib import pyplot as plt
-import albumentations as A
-from albumentations.pytorch.transforms import ToTensorV2
 
+from util import *
 
 DIR_INPUT = 'data'
 DIR_TRAIN = f'{DIR_INPUT}/train'
@@ -27,13 +25,6 @@ train_df['x'] = -1
 train_df['y'] = -1
 train_df['w'] = -1
 train_df['h'] = -1
-
-
-def expand_bbox(x):
-    r = np.array(re.findall("([0-9]+[.]?[0-9]*)", x))
-    if len(r) == 0:
-        r = [-1, -1, -1, -1]
-    return r
 
 
 train_df[['x', 'y', 'w', 'h']] = np.stack(train_df['bbox'].apply(lambda x: expand_bbox(x)))
@@ -50,9 +41,9 @@ val_size = int(np.round(0.2*len(image_ids)))
 valid_ids = image_ids[-val_size:]
 train_ids = image_ids[:-val_size]
 
-print("Size of dataset: ", len(image_ids))
-print("Size of validation set: ", val_size)
-print("Size of training set:", len(image_ids)-val_size)
+# print("Size of dataset: ", len(image_ids))
+# print("Size of validation set: ", val_size)
+# print("Size of training set:", len(image_ids)-val_size)
 
 valid_df = train_df[train_df['image_id'].isin(valid_ids)]
 train_df = train_df[train_df['image_id'].isin(train_ids)]
@@ -116,47 +107,6 @@ class WheatDataset(Dataset):
         return image, target, image_id
 
 
-def get_train_transforms():
-    return A.Compose(
-        [
-            A.OneOf([
-                A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2,
-                                     val_shift_limit=0.2, p=0.9),
-                A.RandomBrightnessContrast(brightness_limit=0.2,
-                                           contrast_limit=0.2, p=0.9),
-            ], p=0.9),
-            A.ToGray(p=0.01),
-            A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.5),
-            A.Resize(height=512, width=512, p=1),
-            ToTensorV2(p=1.0),
-        ],
-        p=1.0,
-        bbox_params=A.BboxParams(
-            format='pascal_voc',
-            min_area=0,
-            min_visibility=0,
-            label_fields=['labels']
-        )
-    )
-
-
-def get_valid_transforms():
-    return A.Compose(
-        [
-            A.Resize(height=512, width=512, p=1.0),
-            ToTensorV2(p=1.0),
-        ],
-        p=1.0,
-        bbox_params=A.BboxParams(
-            format='pascal_voc',
-            min_area=0,
-            min_visibility=0,
-            label_fields=['labels']
-        )
-    )
-
-
 model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=True)
 
 num_classes = 2  # 1 class (wheat) + background
@@ -167,32 +117,6 @@ in_features = model.roi_heads.box_predictor.cls_score.in_features
 # replace the pre-trained head with a new one
 model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
-
-class Averager:
-    def __init__(self):
-        self.current_total = 0.0
-        self.iterations = 0.0
-
-    def send(self, value):
-        self.current_total += value
-        self.iterations += 1
-
-    @property
-    def value(self):
-        if self.iterations == 0:
-            return 0
-        else:
-            return 1.0 * self.current_total / self.iterations
-
-    def reset(self):
-        self.current_total = 0.0
-        self.iterations = 0.0
-
-
-def collate_fn(batch):
-    return tuple(zip(*batch))
-
-
 train_dataset = WheatDataset(train_df, DIR_TRAIN, get_train_transforms())
 valid_dataset = WheatDataset(valid_df, DIR_TRAIN, get_valid_transforms())
 
@@ -201,8 +125,8 @@ indices = torch.randperm(len(train_dataset)).tolist()
 
 train_data_loader = DataLoader(
     train_dataset,
-    batch_size=8,
-    shuffle=True,
+    batch_size=2,
+    shuffle=False,
     num_workers=4,
     collate_fn=collate_fn
 )
@@ -281,41 +205,41 @@ for epoch in range(num_epochs):
         lr_scheduler.step()
 
     print(f"Epoch #{epoch} loss: {loss_hist.value}")
-
+    torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn.pth')
 
 # ------------------------------------- Validation -------------------------------------
 
-test_id = 5
-images, targets, image_ids = next(iter(valid_data_loader))
-images = list(img.to(device) for img in images)
-
-targets = [{k: v.long().to(device) for k, v in t.items()} for t in targets]
-
-boxes = targets[test_id]['boxes'].cpu().numpy().astype(np.int32)
-sample = images[test_id].permute(1, 2, 0).cpu().numpy()
-
-model.eval()
-cpu_device = torch.device("cpu")
-
-outputs = model(images)
-outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
-
-fig, ax = plt.subplots(1, 1, figsize=(16, 8))
-
-for box in boxes:
-    cv2.rectangle(sample,
-                  (box[0], box[1]),
-                  (box[2], box[3]),
-                  (0, 220, 0), 3)
-
-for box in outputs[test_id]['boxes']:
-    cv2.rectangle(sample,
-                  (box[0], box[1]),
-                  (box[2], box[3]),
-                  (220, 0, 0), 3)
-
-ax.set_axis_off()
-ax.imshow(sample)
+# test_id = 5
+# images, targets, image_ids = next(iter(valid_data_loader))
+# images = list(img.to(device) for img in images)
+#
+# targets = [{k: v.long().to(device) for k, v in t.items()} for t in targets]
+#
+# boxes = targets[test_id]['boxes'].cpu().numpy().astype(np.int32)
+# sample = images[test_id].permute(1, 2, 0).cpu().numpy()
+#
+# model.eval()
+# cpu_device = torch.device("cpu")
+#
+# outputs = model(images)
+# outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
+#
+# fig, ax = plt.subplots(1, 1, figsize=(16, 8))
+#
+# for box in boxes:
+#     cv2.rectangle(sample,
+#                   (box[0], box[1]),
+#                   (box[2], box[3]),
+#                   (0, 220, 0), 3)
+#
+# for box in outputs[test_id]['boxes']:
+#     cv2.rectangle(sample,
+#                   (box[0], box[1]),
+#                   (box[2], box[3]),
+#                   (220, 0, 0), 3)
+#
+# ax.set_axis_off()
+# ax.imshow(sample)
 
 torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn.pth')
 

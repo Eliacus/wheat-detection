@@ -2,8 +2,9 @@ import re
 import numpy as np  # linear algebra
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
-
-
+from matplotlib import patches
+import matplotlib.pyplot as plt
+from PIL import Image
 
 def expand_bbox(x):
     r = np.array(re.findall("([0-9]+[.]?[0-9]*)", x))
@@ -74,3 +75,38 @@ class Averager:
 
 def collate_fn(batch):
     return tuple(zip(*batch))
+
+
+def get_all_bboxes(df, image_id):
+    image_bboxes = df[df.image_id == image_id]
+
+    bboxes = []
+    for _, row in image_bboxes.iterrows():
+        bboxes.append((row['x'], row['y'], row['w'], row['h']))
+
+    return bboxes
+
+
+def plot_image_examples(df, rows=3, cols=3, title='Image examples'):
+    fig, axs = plt.subplots(rows, cols, figsize=(10, 10))
+    for row in range(rows):
+        for col in range(cols):
+            idx = np.random.randint(len(df), size=1)[0]
+            img_id = df.iloc[idx].image_id
+
+            img = Image.open('data/train/' + img_id + '.jpg')
+            print(img)
+            axs[row, col].imshow(img)
+
+            bboxes = get_all_bboxes(df, img_id)
+
+            for bbox in bboxes:
+                rect = patches.Rectangle((bbox[0], bbox[1]), bbox[2], bbox[3], linewidth=1, edgecolor='r',
+                                         facecolor='none')
+                axs[row, col].add_patch(rect)
+
+            axs[row, col].axis('off')
+
+    plt.suptitle(title)
+
+

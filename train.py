@@ -41,10 +41,6 @@ val_size = int(np.round(0.2*len(image_ids)))
 valid_ids = image_ids[-val_size:]
 train_ids = image_ids[:-val_size]
 
-# print("Size of dataset: ", len(image_ids))
-# print("Size of validation set: ", val_size)
-# print("Size of training set:", len(image_ids)-val_size)
-
 valid_df = train_df[train_df['image_id'].isin(valid_ids)]
 train_df = train_df[train_df['image_id'].isin(train_ids)]
 
@@ -102,7 +98,7 @@ class WheatDataset(Dataset):
             sample = self.transforms(**sample)
             image = sample['image']
 
-            target['boxes'] = torch.tensor(sample['bboxes']).type(torch.long)
+            target['boxes'] = torch.tensor(sample['bboxes'])
 
         return image, target, image_id
 
@@ -125,7 +121,7 @@ indices = torch.randperm(len(train_dataset)).tolist()
 
 train_data_loader = DataLoader(
     train_dataset,
-    batch_size=2,
+    batch_size=8,
     shuffle=False,
     num_workers=4,
     collate_fn=collate_fn
@@ -142,8 +138,8 @@ valid_data_loader = DataLoader(
 device = torch.device('cuda')
 
 # ------------------------------------- Sample -------------------------------------
-sample = False
-if sample:
+sampling = False
+if sampling:
     images, targets, image_ids = next(iter(train_data_loader))
     images = list(image.to(device) for image in images)
     targets = [{k: v.long().to(device) for k, v in t.items()} for t in targets]
@@ -168,7 +164,7 @@ if sample:
 
 model.to(device)
 params = [p for p in model.parameters() if p.requires_grad]
-optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+optimizer = torch.optim.SGD(params, lr=0.0005, momentum=0.9, weight_decay=0.0005)
 # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 lr_scheduler = None
 

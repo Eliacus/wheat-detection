@@ -10,7 +10,7 @@ weight_file = 'fasterrcnn_resnet50_fpn.pth'
 
 model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False, pretrained_backbone=False)
 
-device = torch.device('cpu')
+device = torch.device('cuda')
 
 num_classes = 2  # 1 class (wheat) + background
 
@@ -21,7 +21,7 @@ in_features = model.roi_heads.box_predictor.cls_score.in_features
 model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
 # Load the trained weights
-model.load_state_dict(torch.load(weight_file), map_location=)
+model.load_state_dict(torch.load(weight_file))
 model.eval()
 
 x = model.to(device)

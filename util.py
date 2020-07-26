@@ -4,7 +4,10 @@ import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 from matplotlib import patches
 import matplotlib.pyplot as plt
+import torch
 from PIL import Image
+import cv2
+from torch.utils.data import Dataset
 
 
 def expand_bbox(x):
@@ -40,7 +43,7 @@ def get_train_transforms():
 def get_valid_transforms():
     return A.Compose(
         [
-            A.Resize(height=512, width=512, p=1.0),
+            # A.Resize(height=512, width=512, p=1.0),
             ToTensorV2(p=1.0),
         ],
         p=1.0,
@@ -111,3 +114,89 @@ def plot_image_examples(df, rows=3, cols=3, title='Image examples'):
     plt.suptitle(title)
 
 
+def plot_image_predictions(df, rows=3, cols=3, title='Image Predictions'):
+    fig, axs = plt.subplots(rows, cols, figsize=(10, 10))
+    for row in range(rows):
+        for col in range(cols):
+            idx = np.random.randint(len(df), size=1)[0]
+            img_id = df.iloc[idx].image_id
+
+            img = Image.open('data/train/' + img_id + '.jpg')
+            print(img)
+            axs[row, col].imshow(img)
+
+            bboxes = get_all_bboxes(df, img_id)
+
+            for bbox in bboxes:
+                rect = patches.Rectangle((bbox[0], bbox[1]), bbox[2], bbox[3], linewidth=1, edgecolor='r',
+                                         facecolor='none')
+                axs[row, col].add_patch(rect)
+
+            axs[row, col].axis('off')
+
+    plt.suptitle(title)
+
+class WheatDataset(Dataset):
+    """ Wheat Detection Dataset Class"""
+
+    def __init__(self, dataframe, image_dir, transforms=None):
+        super().__init__()
+
+        self.image_ids = dataframe['image_id'].unique()
+        self.df = dataframe
+        self.image_dir = image_dir
+        self.transforms = transforms
+
+    def __len__(self) -> int:
+        return self.image_ids.shape[0]
+
+    def __getitem__(self, index: int):
+        image_id = self.image_ids[index]
+        records = self.df[self.df['image_id'] == image_id]
+
+        image = cv2.imread(f'{self.image_dir}/{image_id}.jpg', cv2.IMREAD_COLOR)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
+        image /= 255.0
+
+        # Reformat bboxes from [x, y, w, h] to [x_min, y_min, x_max, y_max]
+        boxes = records[['x', 'y', 'w', 'h']].values
+        boxes[:, 2] = boxes[:, 0] + boxes[:, 2]
+        boxes[:, 3] = boxes[:, 1] + boxes[:, 3]
+
+        area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+        area = torch.as_tensor(area, dtype=torch.float32)
+
+        # there is only one class
+        labels = torch.ones((records.shape[0],), dtype=torch.int64)
+
+        # suppose all instances are not crowd
+        iscrowd = torch.zeros((records.shape[0],), dtype=torch.int64)
+
+        target = {}
+        target['boxes'] = boxes
+        target['labels'] = labels
+        # target['masks'] = None
+        target['image_id'] = torch.tensor([index])
+        target['area'] = area
+        target['iscrowd'] = iscrowd
+
+        if self.transforms:
+            sample = {
+                'image': image,
+                'bboxes': target['boxes'],
+                'labels': labels
+            }
+            sample = self.transforms(**sample)
+            image = sample['image']
+
+            target['boxes'] = torch.tensor(sample['bboxes'])
+
+        return image, target, image_id
+
+
+def format_prediction_string(boxes, scores):
+    pred_strings = []
+    for j in zip(scores, boxes):
+        pred_strings.append("{0:.4f} {1} {2} {3} {4}".format(j[0], j[1][0], j[1][1], j[1][2], j[1][3]))
+
+    return " ".join(pred_strings)

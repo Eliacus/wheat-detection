@@ -64,4 +64,4 @@ for images, image_ids in test_data_loader:
         results.append(result)
 
 test_df = pd.DataFrame(results, columns=['image_id', 'PredictionString'])
-test_df.head()
+print(test_df.head())

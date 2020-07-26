@@ -6,6 +6,7 @@ from matplotlib import patches
 import matplotlib.pyplot as plt
 from PIL import Image
 
+
 def expand_bbox(x):
     r = np.array(re.findall("([0-9]+[.]?[0-9]*)", x))
     if len(r) == 0:
@@ -16,14 +17,14 @@ def expand_bbox(x):
 def get_train_transforms():
     return A.Compose(
         [
-            A.OneOf([
-                A.HueSaturationValue(p=0.9),  # hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.9),
-                A.RandomBrightnessContrast(p=0.9),  # brightness_limit=0.2, contrast_limit=0.2, p=0.9),
-            ], p=0.9),
-            A.ToGray(p=0.01),
-            A.HorizontalFlip(p=0.5),
-            A.VerticalFlip(p=0.5),
-            A.Resize(height=512, width=512, p=1),
+            # A.OneOf([
+            #     A.HueSaturationValue(p=0.9),  # hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.9),
+            #     A.RandomBrightnessContrast(p=0.9),  # brightness_limit=0.2, contrast_limit=0.2, p=0.9),
+            # ], p=0.9),
+            # A.ToGray(p=0.01),
+            # A.HorizontalFlip(p=0.5),
+            # A.VerticalFlip(p=0.5),
+            # A.Resize(height=512, width=512, p=1),
             ToTensorV2(p=1.0),
         ],
         p=1.0,

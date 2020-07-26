@@ -21,7 +21,6 @@ DIR_TEST = f'{DIR_INPUT}/test'
 # Create pandas dataframe
 train_df = pd.read_csv(f'{DIR_INPUT}/train.csv')
 
-
 # Expand bboxes to x,y,w,h
 train_df['x'] = -1
 train_df['y'] = -1
@@ -39,5 +38,12 @@ train_df['h'] = train_df['h'].astype(np.float)
 
 train_df['area'] = train_df['w'] * train_df['h']
 
-plt.hist(train_df['area'])
 
+# Histogram over area distribution
+# plt.hist(train_df['area'])
+
+train_df.drop(train_df[train_df['area'] > 200000].index, inplace=True)
+large_boxes = train_df[train_df['area'] > 200000].image_id
+
+train_df.to_csv('data/cleaned_data.csv')
+# plot_image_examples(train_df[train_df.image_id.isin(large_boxes)])

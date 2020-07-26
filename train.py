@@ -19,20 +19,7 @@ DIR_TRAIN = f'{DIR_INPUT}/train'
 DIR_TEST = f'{DIR_INPUT}/test'
 
 # Create pandas dataframe
-train_df = pd.read_csv(f'{DIR_INPUT}/train.csv')
-
-train_df['x'] = -1
-train_df['y'] = -1
-train_df['w'] = -1
-train_df['h'] = -1
-
-
-train_df[['x', 'y', 'w', 'h']] = np.stack(train_df['bbox'].apply(lambda x: expand_bbox(x)))
-train_df.drop(columns=['bbox'], inplace=True)
-train_df['x'] = train_df['x'].astype(np.float)
-train_df['y'] = train_df['y'].astype(np.float)
-train_df['w'] = train_df['w'].astype(np.float)
-train_df['h'] = train_df['h'].astype(np.float)
+train_df = pd.read_csv(f'{DIR_INPUT}/cleaned_data.csv')
 
 image_ids = train_df['image_id'].unique()
 

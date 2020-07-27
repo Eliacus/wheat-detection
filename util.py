@@ -20,13 +20,14 @@ def expand_bbox(x):
 def get_train_transforms():
     return A.Compose(
         [
-            # A.OneOf([
-            #     A.HueSaturationValue(p=0.9),  # hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.9),
-            #     A.RandomBrightnessContrast(p=0.9),  # brightness_limit=0.2, contrast_limit=0.2, p=0.9),
-            # ], p=0.9),
-            # A.ToGray(p=0.01),
-            # A.HorizontalFlip(p=0.5),
-            # A.VerticalFlip(p=0.5),
+            A.RandomSizedCrop(min_max_height=(800, 800), height=1024, width=1024, p=0.5),
+            A.OneOf([
+                A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.9),
+                A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.9),
+            ], p=0.9),
+            A.ToGray(p=0.01),
+            A.HorizontalFlip(p=0.5),
+            A.VerticalFlip(p=0.5),
             # A.Resize(height=512, width=512, p=1),
             ToTensorV2(p=1.0),
         ],
@@ -136,6 +137,7 @@ def plot_image_predictions(df, rows=3, cols=3, title='Image Predictions'):
 
     plt.suptitle(title)
 
+
 class WheatDataset(Dataset):
     """ Wheat Detection Dataset Class"""
 
@@ -181,15 +183,16 @@ class WheatDataset(Dataset):
         target['iscrowd'] = iscrowd
 
         if self.transforms:
-            sample = {
-                'image': image,
-                'bboxes': target['boxes'],
-                'labels': labels
-            }
+            sample = {'image': image, 'bboxes': target['boxes'], 'labels': labels}
             sample = self.transforms(**sample)
-            image = sample['image']
+            while len(sample['bboxes']) == 0:
+                sample = {'image': image, 'bboxes': target['boxes'], 'labels': labels}
+                sample = self.transforms(**sample)
 
+            image = sample['image']
             target['boxes'] = torch.tensor(sample['bboxes'])
+            target['labels'] = torch.ones(len(sample['bboxes'],), dtype=torch.int64)
+            target['iscrowd'] = torch.zeros(len(sample['bboxes'],), dtype=torch.int64)
 
         return image, target, image_id
 

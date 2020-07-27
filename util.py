@@ -56,6 +56,12 @@ def get_valid_transforms():
     )
 
 
+def get_test_transforms():
+    return A.Compose([
+        ToTensorV2(p=1.0)
+    ])
+
+
 class Averager:
     def __init__(self):
         self.current_total = 0.0
@@ -91,15 +97,19 @@ def get_all_bboxes(df, image_id):
     return bboxes
 
 
-def plot_image_examples(df, rows=3, cols=3, title='Image examples'):
+def plot_image_examples(df, train=False, rows=3, cols=3, title='Image examples'):
     fig, axs = plt.subplots(rows, cols, figsize=(10, 10))
+    if train:
+        location = 'train/'
+    else:
+        location = 'test/'
     for row in range(rows):
         for col in range(cols):
             idx = np.random.randint(len(df), size=1)[0]
             img_id = df.iloc[idx].image_id
 
-            img = Image.open('data/train/' + img_id + '.jpg')
-            print(img)
+            img = Image.open('data/' + location + img_id + '.jpg')
+
             axs[row, col].imshow(img)
 
             bboxes = get_all_bboxes(df, img_id)
@@ -121,11 +131,16 @@ def plot_image_predictions(df, rows=3, cols=3, title='Image Predictions'):
             idx = np.random.randint(len(df), size=1)[0]
             img_id = df.iloc[idx].image_id
 
-            img = Image.open('data/train/' + img_id + '.jpg')
-            print(img)
+            img = Image.open('data/test/' + img_id + '.jpg')
+            # print(img)
             axs[row, col].imshow(img)
 
             bboxes = get_all_bboxes(df, img_id)
+            bboxes = []
+            # Get all bboxes
+            for i in range(int(len(df.iloc[idx].PredictionString)/5)):
+                box = df.iloc[idx].PredictionString[1]
+                bboxes.append(box)
 
             for bbox in bboxes:
                 rect = patches.Rectangle((bbox[0], bbox[1]), bbox[2], bbox[3], linewidth=1, edgecolor='r',
@@ -135,6 +150,7 @@ def plot_image_predictions(df, rows=3, cols=3, title='Image Predictions'):
             axs[row, col].axis('off')
 
     plt.suptitle(title)
+
 
 class WheatDataset(Dataset):
     """ Wheat Detection Dataset Class"""
@@ -192,6 +208,38 @@ class WheatDataset(Dataset):
             target['boxes'] = torch.tensor(sample['bboxes'])
 
         return image, target, image_id
+
+
+class WheatTestDataset(Dataset):
+
+    def __init__(self, dataframe, image_dir, transforms=None):
+        super().__init__()
+
+        self.image_ids = dataframe['image_id'].unique()
+        self.df = dataframe
+        self.image_dir = image_dir
+        self.transforms = transforms
+
+    def __getitem__(self, index: int):
+
+        image_id = self.image_ids[index]
+        records = self.df[self.df['image_id'] == image_id]
+
+        image = cv2.imread(f'{self.image_dir}/{image_id}.jpg', cv2.IMREAD_COLOR)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
+        image /= 255.0
+
+        if self.transforms:
+            sample = {
+                'image': image,
+            }
+            sample = self.transforms(**sample)
+            image = sample['image']
+
+        return image, image_id
+
+    def __len__(self) -> int:
+        return self.image_ids.shape[0]
 
 
 def format_prediction_string(boxes, scores):

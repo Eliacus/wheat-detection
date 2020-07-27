@@ -38,12 +38,13 @@ train_df['h'] = train_df['h'].astype(np.float)
 
 train_df['area'] = train_df['w'] * train_df['h']
 
-
 # Histogram over area distribution
 # plt.hist(train_df['area'])
 
+# Remove entries where bboxes are very big
 train_df.drop(train_df[train_df['area'] > 200000].index, inplace=True)
-large_boxes = train_df[train_df['area'] > 200000].image_id
 
 train_df.to_csv('data/cleaned_data.csv')
 # plot_image_examples(train_df[train_df.image_id.isin(large_boxes)])
+
+

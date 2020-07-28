@@ -23,7 +23,7 @@ weight_file = 'fasterrcnn_resnet50_fpn_2.pth'
 
 model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False, pretrained_backbone=False)
 
-device = torch.device('cuda')
+device = torch.device('cpu')
 
 num_classes = 2  # 1 class (wheat) + background
 
@@ -34,7 +34,7 @@ in_features = model.roi_heads.box_predictor.cls_score.in_features
 model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
 # Load the trained weights
-model.load_state_dict(torch.load(weight_file, map_location='cuda'))
+model.load_state_dict(torch.load(weight_file, map_location='cpu'))
 
 
 # Pseudo labeling parameters
@@ -89,7 +89,6 @@ validation_loss = Averager()
 for epoch in range(n_epochs):
     pseudo_training_loss.reset()
     train_loss.reset()
-    validation_loss.reset()
     for images_unlabeled, targets_unlabeled, image_ids_unlabeled in train_data_loader:
         images_unlabeled = list(image.to(device) for image in images_unlabeled)
 
@@ -114,7 +113,10 @@ for epoch in range(n_epochs):
         model.train()
         loss_dict = model(images_unlabeled, pseudo_targets)
 
+        print(loss_dict.values())
         losses = sum(alpha_weight(step, T1, T2, af) * loss for loss in loss_dict.values())
+        print(losses)
+        print("----")
 
         loss_value = losses.item()
 
@@ -147,5 +149,8 @@ for epoch in range(n_epochs):
             print("Step ", step, " completed. Unlabeled loss: ", pseudo_training_loss.value,
                   ", Training loss: ", train_loss.value)
 
+            torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn_2_pseudo_labeled.pth')
+
+    print("Pseudo batch done")
 
 

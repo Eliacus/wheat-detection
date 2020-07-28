@@ -8,7 +8,7 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
 if __name__ == '__main__':
     test_df = pd.read_csv('data/sample_submission.csv')
-    weight_file = 'fasterrcnn_resnet50_fpn.pth'
+    weight_file = 'fasterrcnn_resnet50_fpn_2.pth'
 
     model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False, pretrained_backbone=False)
 
@@ -39,7 +39,7 @@ if __name__ == '__main__':
         collate_fn=collate_fn
     )
 
-    detection_threshold = 0.9
+    detection_threshold = 0.5
     results = []
     plot_df = pd.DataFrame()
     for images, image_ids in test_data_loader:
@@ -73,3 +73,4 @@ if __name__ == '__main__':
     print(test_df.head())
     test_df.to_csv('submission.csv', index=False)
     plot_image_examples(plot_df, rows=2, cols=2)
+

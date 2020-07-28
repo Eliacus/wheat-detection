@@ -254,9 +254,4 @@ def format_prediction_string(boxes, scores):
 
 def alpha_weight(step, T1, T2, af):
     """ Algorithm to calculate the alpha weight for the pseudo labeling algorithm"""
-    if step < T1:
-        return 0.0
-    elif step > T2:
-        return af
-    else:
-         return ((step-T1) / (T2-T1))*af
+    return ((step-T1) / (T2-T1))*af

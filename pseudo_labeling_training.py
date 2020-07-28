@@ -23,7 +23,7 @@ weight_file = 'fasterrcnn_resnet50_fpn_2.pth'
 
 model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False, pretrained_backbone=False)
 
-device = torch.device('cpu')
+device = torch.device('cuda')
 
 num_classes = 2  # 1 class (wheat) + background
 
@@ -34,7 +34,7 @@ in_features = model.roi_heads.box_predictor.cls_score.in_features
 model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
 # Load the trained weights
-model.load_state_dict(torch.load(weight_file, map_location='cpu'))
+model.load_state_dict(torch.load(weight_file, map_location='cuda'))
 
 
 # Pseudo labeling parameters
@@ -80,7 +80,7 @@ n_epochs = 100
 batch_idx = 0
 # Instead of using current epoch we use a "step" variable to calculate alpha_weight
 # This helps the model converge faster
-step = 100
+step = 101
 
 train_loss = Averager()
 pseudo_training_loss = Averager()
@@ -113,10 +113,8 @@ for epoch in range(n_epochs):
         model.train()
         loss_dict = model(images_unlabeled, pseudo_targets)
 
-        print(loss_dict.values())
-        losses = sum(alpha_weight(step, T1, T2, af) * loss for loss in loss_dict.values())
-        print(losses)
-        print("----")
+        alpha = alpha_weight(step, T1, T2, af)
+        losses = alpha * sum(loss for loss in loss_dict.values())
 
         loss_value = losses.item()
 

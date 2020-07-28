@@ -90,17 +90,19 @@ if sampling:
 
 model.to(device)
 params = [p for p in model.parameters() if p.requires_grad]
-optimizer = torch.optim.SGD(params, lr=0.005, momentum=0.9, weight_decay=0.0005)
+optimizer = torch.optim.SGD(params, lr=0.001, momentum=0.9, weight_decay=0.0005)
 lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
 # lr_scheduler = None
 
 num_epochs = 100
 
-loss_hist = Averager()
+train_loss = Averager()
+validation_loss = Averager()
 itr = 1
 
 for epoch in range(num_epochs):
-    loss_hist.reset()
+    train_loss.reset()
+    validation_loss.reset()
 
     for images, targets, image_ids in train_data_loader:
 
@@ -111,7 +113,7 @@ for epoch in range(num_epochs):
         losses = sum(loss for loss in loss_dict.values())
         loss_value = losses.item()
 
-        loss_hist.send(loss_value)
+        train_loss.send(loss_value)
 
         optimizer.zero_grad()
         losses.backward()
@@ -122,14 +124,27 @@ for epoch in range(num_epochs):
 
         itr += 1
 
+    print(f"Epoch #{epoch} training loss: {train_loss.value}")
+
+    with torch.no_grad():
+        for images, targets, image_ids in valid_data_loader:
+            images = list(image.to(device) for image in images)
+            targets = [{k: v.long().to(device) for k, v in t.items()} for t in targets]
+            loss_dict = model(images, targets)
+
+            losses = sum(loss for loss in loss_dict.values())
+            loss_value = losses.item()
+
+            validation_loss.send(loss_value)
+
+    print(f"Epoch #{epoch} loss: {validation_loss.value}")
+
     # update the learning rate
     if lr_scheduler is not None:
         lr_scheduler.step(epoch)
 
-    torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn_2.pth')
+    torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn_3.pth')
 
-    print(f"Epoch #{epoch} loss: {loss_hist.value}")
-    torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn.pth')
 
 # ------------------------------------- Validation -------------------------------------
 

@@ -99,7 +99,7 @@ def get_all_bboxes(df, image_id):
 
 
 def plot_image_examples(df, train=False, rows=3, cols=3, title='Image examples'):
-    fig, axs = plt.subplots(rows, cols, figsize=(10, 10))
+    fig, axs = plt.subplots(rows, cols, figsize=(20, 20))
     if train:
         location = 'train/'
     else:

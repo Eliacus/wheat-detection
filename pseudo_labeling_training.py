@@ -53,7 +53,7 @@ train_ids = image_ids[:-val_size]
 valid_df = df[df['image_id'].isin(valid_ids)]
 train_df = df[df['image_id'].isin(train_ids)]
 
-train_dataset = WheatDataset(train_df, DIR_TRAIN, get_train_transforms())
+train_dataset = WheatDataset(df, DIR_TRAIN, get_train_transforms())
 valid_dataset = WheatDataset(valid_df, DIR_TRAIN, get_valid_transforms())
 
 train_data_loader = DataLoader(
@@ -142,23 +142,10 @@ for epoch in range(n_epochs):
                 losses.backward()
                 optimizer.step()
 
-            # Validation
-            model.eval()
-            for images, targets, image_ids in valid_data_loader:
-                images = list(image.to(device) for image in images)
-                targets = [{k: v.long().to(device) for k, v in t.items()} for t in targets]
-                loss_dict = model(images, targets)
-
-                losses = sum(loss for loss in loss_dict.values())
-                loss_value = losses.item()
-
-                validation_loss.send(loss_value)
             # Now we increment step by 1
             step += 1
             print("Step ", step, " completed. Unlabeled loss: ", pseudo_training_loss.value,
-                  ", Training loss: ", train_loss.value,
-                  ", Validation loss: ", validation_loss.value)
-
+                  ", Training loss: ", train_loss.value)
 
 
 

@@ -23,7 +23,7 @@ weight_file = 'fasterrcnn_resnet50_fpn_2.pth'
 
 model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=False, pretrained_backbone=False)
 
-device = torch.device('cpu')
+device = torch.device('cuda')
 
 num_classes = 2  # 1 class (wheat) + background
 
@@ -34,7 +34,7 @@ in_features = model.roi_heads.box_predictor.cls_score.in_features
 model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
 # Load the trained weights
-model.load_state_dict(torch.load(weight_file, map_location='cpu'))
+model.load_state_dict(torch.load(weight_file, map_location='cuda'))
 
 
 # Pseudo labeling parameters
@@ -58,7 +58,7 @@ valid_dataset = WheatDataset(valid_df, DIR_TRAIN, get_valid_transforms())
 
 train_data_loader = DataLoader(
     train_dataset,
-    batch_size=8,
+    batch_size=4,
     shuffle=True,
     num_workers=4,
     collate_fn=collate_fn
@@ -66,7 +66,7 @@ train_data_loader = DataLoader(
 
 valid_data_loader = DataLoader(
     valid_dataset,
-    batch_size=8,
+    batch_size=4,
     shuffle=False,
     num_workers=4,
     collate_fn=collate_fn
@@ -114,16 +114,16 @@ for epoch in range(n_epochs):
         model.train()
         loss_dict = model(images_unlabeled, pseudo_targets)
 
-        losses = sum(loss for loss in loss_dict.values())
+        losses = sum(alpha_weight(step, T1, T2, af) * loss for loss in loss_dict.values())
+
         loss_value = losses.item()
 
-        unlabeled_loss = alpha_weight(step, T1, T2, af) * loss_value
-
-        train_loss.send(unlabeled_loss)
+        train_loss.send(loss_value)
 
         optimizer.zero_grad()
-        unlabeled_loss.backward()
+        losses.backward()
         optimizer.step()
+        batch_idx += 1
 
         # For every 50 batches train one epoch on labeled data
         if batch_idx % 50 == 0:
@@ -141,7 +141,7 @@ for epoch in range(n_epochs):
                 optimizer.zero_grad()
                 losses.backward()
                 optimizer.step()
-                
+
             # Validation
             model.eval()
             for images, targets, image_ids in valid_data_loader:

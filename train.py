@@ -34,6 +34,10 @@ in_features = model.roi_heads.box_predictor.cls_score.in_features
 # replace the pre-trained head with a new one
 model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
+# Load the trained weights
+weight_file = 'fasterrcnn_resnet50_fpn_3.pth'
+model.load_state_dict(torch.load(weight_file, map_location='cuda'))
+
 train_dataset = WheatDataset(train_df, DIR_TRAIN, get_train_transforms())
 valid_dataset = WheatDataset(valid_df, DIR_TRAIN, get_valid_transforms())
 
@@ -60,11 +64,11 @@ device = torch.device('cuda')
 
 model.to(device)
 params = [p for p in model.parameters() if p.requires_grad]
-optimizer = torch.optim.SGD(params, lr=0.001, momentum=0.9, weight_decay=0.0005)
-lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
-# lr_scheduler = None
+optimizer = torch.optim.SGD(params, lr=0.0001, momentum=0.9, weight_decay=0.0005)
+# lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+lr_scheduler = None
 
-num_epochs = 100
+num_epochs = 50
 
 train_loss = Averager()
 validation_loss = Averager()
@@ -113,7 +117,7 @@ for epoch in range(num_epochs):
     if lr_scheduler is not None:
         lr_scheduler.step(epoch)
 
-    torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn_3.pth')
+    torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn_3_resumed.pth')
 
 
 # ------------------------------------- Validation -------------------------------------

@@ -1,16 +1,9 @@
 
-import numpy as np  # linear algebra
 import pandas as pd  # data processing, CSV file I/O (e.g. pd.read_csv)
-import os
 
-import torch
 import torchvision
-import cv2
-from torch.utils.data import DataLoader, Dataset
-from torchvision.models.detection import FasterRCNN
+from torch.utils.data import DataLoader
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-
-from matplotlib import pyplot as plt
 
 from util import *
 
@@ -62,29 +55,6 @@ valid_data_loader = DataLoader(
 )
 
 device = torch.device('cuda')
-
-# ------------------------------------- Sample -------------------------------------
-sampling = False
-if sampling:
-    images, targets, image_ids = next(iter(train_data_loader))
-    images = list(image.to(device) for image in images)
-    targets = [{k: v.long().to(device) for k, v in t.items()} for t in targets]
-
-    boxes = targets[0]['boxes'].cpu().numpy().astype(np.int32)
-    sample = images[0].permute(1, 2, 0).cpu().numpy()
-
-    fig, ax = plt.subplots(1, 1, figsize=(16, 8))
-
-    for box in boxes:
-        cv2.rectangle(sample,
-                      (box[0], box[1]),
-                      (box[2], box[3]),
-                      (220, 0, 0), 3)
-
-    ax.set_axis_off()
-    ax.imshow(sample)
-    plt.show()
-
 
 # ------------------------------------- Training -------------------------------------
 

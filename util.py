@@ -250,3 +250,13 @@ def format_prediction_string(boxes, scores):
         pred_strings.append("{0:.4f} {1} {2} {3} {4}".format(j[0], j[1][0], j[1][1], j[1][2], j[1][3]))
 
     return " ".join(pred_strings)
+
+
+def alpha_weight(step, T1, T2, af):
+    """ Algorithm to calculate the alpha weight for the pseudo labeling algorithm"""
+    if step < T1:
+        return 0.0
+    elif step > T2:
+        return af
+    else:
+         return ((step-T1) / (T2-T1))*af

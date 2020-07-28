@@ -26,7 +26,7 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load(weight_file, map_location='cpu'))
     model.eval()
 
-    x = model.to(device)
+    model.to(device)
 
     test_dataset = WheatTestDataset(test_df, 'data/test', get_test_transforms())
 
@@ -39,7 +39,7 @@ if __name__ == '__main__':
         collate_fn=collate_fn
     )
 
-    detection_threshold = 0.92
+    detection_threshold = 0.5
     results = []
     plot_df = pd.DataFrame()
     for images, image_ids in test_data_loader:

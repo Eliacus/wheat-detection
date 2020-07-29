@@ -104,7 +104,8 @@ for epoch in range(n_epochs):
             boxes = boxes[scores >= detection_threshold]
             scores = scores[scores >= detection_threshold]
             image_id = image_ids_unlabeled[i]
-
+            if len(boxes) < 1:
+                print("ERROR IN BOXES, IT'S EMPTY: ", boxes)
             pseudo_targets.append({'boxes': torch.tensor(boxes, dtype=torch.float64).to(device),
                                    'labels': torch.ones(len(boxes), dtype=torch.int64).to(device)})
         # -----------------------------------------------------------------

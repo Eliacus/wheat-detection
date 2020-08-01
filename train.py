@@ -58,7 +58,7 @@ if __name__ == '__main__':
     #     collate_fn=collate_fn
     # )
 
-    device = torch.device('cpu')
+    device = torch.device('cuda')
 
     # ------------------------------------- Training -------------------------------------
 
@@ -84,9 +84,9 @@ if __name__ == '__main__':
             loss_dict = model(images, targets)
 
             print(np.max(targets[0]['boxes'].cpu().numpy()),
-                      np.max(targets[0]['boxes'].cpu().numpy()),
-                      np.max(targets[0]['boxes'].cpu().numpy()),
-                      np.max(targets[0]['boxes'].cpu().numpy()))
+                      np.max(targets[1]['boxes'].cpu().numpy()),
+                      np.max(targets[2]['boxes'].cpu().numpy()),
+                      np.max(targets[3]['boxes'].cpu().numpy()))
             losses = sum(loss for loss in loss_dict.values())
             loss_value = losses.item()
 

@@ -108,6 +108,9 @@ if __name__ == '__main__':
 
             train_loss.send(loss_value)
 
+            if np.isnan(loss_value):
+                print(targets)
+
             optimizer.zero_grad()
             losses.backward()
 

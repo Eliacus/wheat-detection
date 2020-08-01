@@ -90,6 +90,18 @@ if __name__ == '__main__':
             images = list(image.to(device) for image in images)
 
             targets = [{k: v.long().to(device) for k, v in t.items()} for t in targets]
+
+
+            print(np.max(targets[0]['boxes'].cpu().numpy()),
+                  np.max(targets[1]['boxes'].cpu().numpy()),
+                  np.max(targets[2]['boxes'].cpu().numpy()),
+                  np.max(targets[3]['boxes'].cpu().numpy()))
+            print(np.min(targets[0]['boxes'].cpu().numpy()),
+                  np.min(targets[1]['boxes'].cpu().numpy()),
+                  np.min(targets[2]['boxes'].cpu().numpy()),
+                  np.min(targets[3]['boxes'].cpu().numpy()))
+
+            print("-------------------")
             loss_dict = model(images, targets)
             losses = sum(loss for loss in loss_dict.values())
             loss_value = losses.item()

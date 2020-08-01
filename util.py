@@ -20,7 +20,7 @@ def expand_bbox(x):
 def get_train_transforms():
     return A.Compose(
         [
-            A.RandomSizedCrop(min_max_height=(800, 800), height=1024, width=1024, p=0.5),
+            A.RandomSizedCrop(min_max_height=(512, 512), height=512, width=512, p=1),
             A.OneOf([
                 A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.9),
                 A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.9),
@@ -28,7 +28,7 @@ def get_train_transforms():
             A.ToGray(p=0.01),
             A.HorizontalFlip(p=0.5),
             A.VerticalFlip(p=0.5),
-            # A.Resize(height=512, width=512, p=1),
+            A.Resize(height=512, width=512, p=1),
             ToTensorV2(p=1.0),
         ],
         p=1.0,
@@ -44,7 +44,7 @@ def get_train_transforms():
 def get_valid_transforms():
     return A.Compose(
         [
-            # A.Resize(height=512, width=512, p=1.0),
+            A.Resize(height=512, width=512, p=1.0),
             ToTensorV2(p=1.0),
         ],
         p=1.0,
@@ -99,7 +99,7 @@ def get_all_bboxes(df, image_id):
 
 
 def plot_image_examples(df, train=False, rows=3, cols=3, title='Image examples'):
-    fig, axs = plt.subplots(rows, cols, figsize=(20, 20))
+    fig, axs = plt.subplots(rows, cols, figsize=(30, 30))
     if train:
         location = 'train/'
     else:
@@ -189,13 +189,12 @@ class WheatDataset(Dataset):
         # suppose all instances are not crowd
         iscrowd = torch.zeros((records.shape[0],), dtype=torch.int64)
 
-        target = {}
-        target['boxes'] = boxes
-        target['labels'] = labels
+        target = {'boxes': boxes,
+                  'labels': labels,
+                  'image_id': torch.tensor([index]),
+                  'area': area,
+                  'iscrowd': iscrowd}
         # target['masks'] = None
-        target['image_id'] = torch.tensor([index])
-        target['area'] = area
-        target['iscrowd'] = iscrowd
 
         if self.transforms:
             sample = {'image': image, 'bboxes': target['boxes'], 'labels': labels}

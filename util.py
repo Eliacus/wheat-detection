@@ -20,7 +20,7 @@ def expand_bbox(x):
 def get_train_transforms():
     return A.Compose(
         [
-            A.RandomSizedCrop(min_max_height=(200, 200), height=512, width=512, p=1),
+            A.RandomSizedCrop(min_max_height=(600, 600), height=1024, width=1024, p=0.5),
             A.OneOf([
                 A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2, p=0.9),
                 A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.9),

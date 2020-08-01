@@ -41,7 +41,6 @@ if __name__ == '__main__':
     train_dataset = WheatDataset(train_df, DIR_TRAIN, get_train_transforms())
     # valid_dataset = WheatDataset(valid_df, DIR_TRAIN, get_valid_transforms())
 
-
     train_data_loader = DataLoader(
         train_dataset,
         batch_size=8,
@@ -78,8 +77,8 @@ if __name__ == '__main__':
         train_loss.reset()
 
         for images, targets, image_ids in train_data_loader:
-
             images = list(image.to(device) for image in images)
+
             targets = [{k: v.long().to(device) for k, v in t.items()} for t in targets]
             loss_dict = model(images, targets)
 
@@ -91,7 +90,6 @@ if __name__ == '__main__':
                   np.min(targets[0]['boxes'].cpu().numpy()),
                   np.min(targets[0]['boxes'].cpu().numpy()),
                   np.min(targets[0]['boxes'].cpu().numpy()))
-
 
             losses = sum(loss for loss in loss_dict.values())
             loss_value = losses.item()

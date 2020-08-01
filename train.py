@@ -105,8 +105,16 @@ if __name__ == '__main__':
 
             optimizer.step()
 
-            if itr % 1 == 0:
+            if itr % 50 == 0:
                 print(f"Iteration #{itr} loss: {loss_value}")
+                print(np.max(targets[0]['boxes'].cpu().numpy()),
+                  np.max(targets[1]['boxes'].cpu().numpy()),
+                  np.max(targets[2]['boxes'].cpu().numpy()),
+                  np.max(targets[3]['boxes'].cpu().numpy()))
+                print(np.min(targets[0]['boxes'].cpu().numpy()),
+                  np.min(targets[1]['boxes'].cpu().numpy()),
+                  np.min(targets[2]['boxes'].cpu().numpy()),
+                  np.min(targets[3]['boxes'].cpu().numpy()))
 
             itr += 1
 

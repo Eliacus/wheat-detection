@@ -120,7 +120,7 @@ for epoch in range(n_epochs):
         loss_dict = model(images_unlabeled, pseudo_targets)
 
         alpha = alpha_weight(step, T1, T2, af)
-        losses = sum(loss for loss in loss_dict.values())
+        losses = alpha * sum(loss for loss in loss_dict.values())
 
         loss_value = losses.item()
 
@@ -133,14 +133,10 @@ for epoch in range(n_epochs):
         batch_idx += 1
 
         # For every 50 batches train one epoch on labeled data
-        if batch_idx % 1 == 0:
+        if batch_idx % 50 == 0:
             print(batch_idx, "batches complete. Loss: ", loss_value, " Training one epoch on labeled data")
             train_batch = 0
             for images, targets, image_ids in train_data_loader:
-                print(np.max(targets[0]['boxes'].cpu().numpy()),
-                      np.max(targets[0]['boxes'].cpu().numpy()),
-                      np.max(targets[0]['boxes'].cpu().numpy()),
-                      np.max(targets[0]['boxes'].cpu().numpy()))
                 train_batch += 1
                 images = list(image.to(device) for image in images)
                 targets = [{k: v.long().to(device) for k, v in t.items()} for t in targets]
@@ -155,7 +151,7 @@ for epoch in range(n_epochs):
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 10)
                 optimizer.step()
 
-                if train_batch % 1 == 0:
+                if train_batch % 50 == 0:
                     print(f"Training batch {train_batch} loss: {loss_value}")
             # Now we increment step by 1
             step += 1
@@ -164,7 +160,9 @@ for epoch in range(n_epochs):
                   ", Training loss: ", train_loss.value)
             print("--------------------------------")
 
-            torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn_2_pseudo_labeled.pth')
+            if not np.isnan(loss_value):
+                print("Saving model")
+                torch.save(model.state_dict(), 'fasterrcnn_resnet50_fpn_2_pseudo_labeled.pth')
 
     print("Pseudo batch", epoch, " done")
 

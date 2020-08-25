@@ -78,20 +78,30 @@ if __name__ == '__main__':
 
         for images, targets, image_ids in train_data_loader:
 
-          #  print(np.max(targets[0]['boxes'].cpu().numpy()),
-          #        np.max(targets[1]['boxes'].cpu().numpy()),
-          #        np.max(targets[2]['boxes'].cpu().numpy()),
-          #        np.max(targets[3]['boxes'].cpu().numpy()))
-          #  print(np.min(targets[0]['boxes'].cpu().numpy()),
-          #        np.min(targets[1]['boxes'].cpu().numpy()),
-          #        np.min(targets[2]['boxes'].cpu().numpy()),
-          #        np.min(targets[3]['boxes'].cpu().numpy()))
+            print(np.max(targets[0]['boxes'].cpu().numpy()),
+                 np.max(targets[1]['boxes'].cpu().numpy()),
+                 np.max(targets[2]['boxes'].cpu().numpy()),
+                 np.max(targets[3]['boxes'].cpu().numpy()))
+            print(np.min(targets[0]['boxes'].cpu().numpy()),
+                 np.min(targets[1]['boxes'].cpu().numpy()),
+                 np.min(targets[2]['boxes'].cpu().numpy()),
+                 np.min(targets[3]['boxes'].cpu().numpy()))
 
             images = list(image.to(device) for image in images)
 
             targets = [{k: v.long().to(device) for k, v in t.items()} for t in targets]
 
+
             loss_dict = model(images, targets)
+            print(np.max(targets[0]['boxes'].cpu().numpy()),
+                  np.max(targets[1]['boxes'].cpu().numpy()),
+                  np.max(targets[2]['boxes'].cpu().numpy()),
+                  np.max(targets[3]['boxes'].cpu().numpy()))
+            print(np.min(targets[0]['boxes'].cpu().numpy()),
+                  np.min(targets[1]['boxes'].cpu().numpy()),
+                  np.min(targets[2]['boxes'].cpu().numpy()),
+                  np.min(targets[3]['boxes'].cpu().numpy()))
+            print("------------------------")
             losses = sum(loss for loss in loss_dict.values())
             loss_value = losses.item()
 
@@ -107,14 +117,6 @@ if __name__ == '__main__':
 
             if itr % 50 == 0:
                 print(f"Iteration #{itr} loss: {loss_value}")
-                print(np.max(targets[0]['boxes'].cpu().numpy()),
-                  np.max(targets[1]['boxes'].cpu().numpy()),
-                  np.max(targets[2]['boxes'].cpu().numpy()),
-                  np.max(targets[3]['boxes'].cpu().numpy()))
-                print(np.min(targets[0]['boxes'].cpu().numpy()),
-                  np.min(targets[1]['boxes'].cpu().numpy()),
-                  np.min(targets[2]['boxes'].cpu().numpy()),
-                  np.min(targets[3]['boxes'].cpu().numpy()))
 
             itr += 1
 

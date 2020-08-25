@@ -33,7 +33,7 @@ if __name__ == '__main__':
     test_data_loader = DataLoader(
         test_dataset,
         batch_size=4,
-        shuffle=False,
+        shuffle=True,
         num_workers=4,
         drop_last=False,
         collate_fn=collate_fn
